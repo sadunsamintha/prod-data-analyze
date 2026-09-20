@@ -19,6 +19,7 @@ try:
         load_stdin,
         validate_input_argument,
     )
+    from ge108_data.ge108_sent import analyze_sent_archives
     from ge108_data.models import (
         AnalysisConfig,
         AnalysisError,
@@ -51,12 +52,13 @@ class SafeArgumentParser(argparse.ArgumentParser):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = SafeArgumentParser(
-        description="Analyze and profile local CSV, TSV, JSON, JSONL, Excel, and Parquet data.",
+        description="Analyze tabular data or GE-108 .data.zip sent archives.",
         epilog=(
             "Examples:\n"
             "  python date_executor.py --input data.csv\n"
             "  python date_executor.py --input data/ --recursive --format json\n"
             "  python date_executor.py --input - --format json < data.jsonl\n\n"
+            "  python date_executor.py --sent-dir data/products/sent --date 25/06/2026\n\n"
             "Exit statuses: 0 success, 2 invalid arguments, 3 missing input, "
             "4 unreadable input, 5 unsupported format, 6 parsing failure, "
             "7 analysis failure, 8 output failure, 9 export failure, "
@@ -67,9 +69,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--input",
         action="append",
-        required=True,
         metavar="PATH",
         help="File or folder to analyze; repeat for multiple inputs, or use - for stdin",
+    )
+    parser.add_argument(
+        "--sent-dir",
+        type=Path,
+        help="GE-108 data/products/sent directory (or an ancestor containing it)",
+    )
+    parser.add_argument(
+        "--date",
+        help="GE-108 sent-file date in DD/MM/YYYY or DD-MM-YYYY format",
     )
     parser.add_argument("--output", type=Path, help="Directory for persisted reports")
     parser.add_argument(
@@ -110,6 +120,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def config_from_args(args: argparse.Namespace) -> AnalysisConfig:
+    if args.sent_dir is not None or args.date is not None:
+        if args.sent_dir is None or args.date is None:
+            raise InvalidArgumentsError("--sent-dir and --date must be supplied together")
+        if args.input:
+            raise InvalidArgumentsError("--input cannot be combined with --sent-dir/--date")
+    elif not args.input:
+        raise InvalidArgumentsError("provide --input, or provide --sent-dir together with --date")
     if args.sample_size <= 0:
         raise InvalidArgumentsError("--sample-size must be a positive integer")
     if not 1 <= args.max_category_values <= 1000:
@@ -130,10 +147,11 @@ def config_from_args(args: argparse.Namespace) -> AnalysisConfig:
     columns = tuple(item.strip() for item in (args.columns or "").split(",") if item.strip())
     if len(columns) != len(set(columns)):
         raise InvalidArgumentsError("--columns must not contain duplicates")
-    if args.input.count("-") > 1 or ("-" in args.input and len(args.input) > 1):
+    inputs = args.input or ()
+    if inputs.count("-") > 1 or ("-" in inputs and len(inputs) > 1):
         raise InvalidArgumentsError("standard input cannot be repeated or combined with path inputs")
     return AnalysisConfig(
-        inputs=tuple(args.input),
+        inputs=tuple(inputs),
         output=args.output,
         report_format=ReportFormat(args.report_format),
         recursive=args.recursive,
@@ -281,6 +299,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         config = config_from_args(args)
+        if args.sent_dir is not None:
+            result = analyze_sent_archives(
+                args.sent_dir,
+                args.date,
+                overwrite=args.overwrite,
+            )
+            print(f"Sent directory: {result.sent_dir}")
+            print(f"Date directory: {result.date_dir}")
+            print(f"OKFILe directory: {result.okfile_dir}")
+            print(f"Copied archives: {len(result.copied_archives)}")
+            print(f"Copied other files: {len(result.copied_files)}")
+            print(f"Extracted files: {len(result.extracted_files)}")
+            print(f"Scanned .data.ok files: {result.scanned_files}")
+            print(f"Total production count: {result.total_product_count}")
+            print(f"Duplicate groups: {result.duplicate_code_count}")
+            print(f"Duplicate occurrences: {result.duplicate_entry_count}")
+            print(f"Same-status groups: {result.same_status_groups}")
+            print(f"Mixed-status groups: {result.mixed_status_groups}")
+            for report in result.reports:
+                print(f"Created: {report}")
+            return int(ExitCode.SUCCESS)
         _, exit_code = execute(config, sys.stdin, sys.stdout, sys.stderr)
         return int(exit_code)
     except AnalyzerError as error:

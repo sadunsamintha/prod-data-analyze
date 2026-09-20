@@ -1,6 +1,6 @@
 # GE-108 Data Analyzer Skill
 
-`ge-108-data` is an Agent Skill and local Python CLI for safely profiling tabular datasets. It supports CSV, TSV, JSON, JSON Lines, Excel `.xlsx`, and Parquet without modifying source files or transmitting data.
+`ge-108-data` is an Agent Skill and local Python CLI for GE-108 production-data duplicate analysis and general tabular profiling. It supports GE-108 `.data.zip`/`.data.ok` workflows plus CSV, TSV, JSON, JSON Lines, Excel `.xlsx`, and Parquet without modifying source files or transmitting data.
 
 ## Features
 
@@ -11,6 +11,7 @@
 - Text, Markdown, and versioned JSON reports
 - Masked report-facing sensitive values and redacted diagnostics
 - Deterministic sampling for reasonably large datasets
+- Date-based GE-108 sent-archive collection, safe extraction, and duplicate `stringCode` reports
 
 ## Prerequisites
 
@@ -29,16 +30,14 @@ On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`.
 
 ## Install From GitHub
 
-After replacing the placeholders with the published repository identity:
-
 ```bash
-npx skills@latest add <github-owner>/<repository-name> --skill ge-108-data
+npx skills@latest add sadunsamintha/prod-data-analyze --skill ge-108-data
 ```
 
 List discoverable skills before installation:
 
 ```bash
-npx skills@latest add <github-owner>/<repository-name> --list
+npx skills@latest add sadunsamintha/prod-data-analyze --list
 ```
 
 The installer has its own anonymous telemetry policy. Disable installer telemetry with `DISABLE_TELEMETRY=1` or `DO_NOT_TRACK=1`. The Python analyzer itself makes no network or telemetry calls.
@@ -65,9 +64,29 @@ python skills/ge-108-data/date_executor.py --input "data" --recursive --format m
 python skills/ge-108-data/date_executor.py --input "book.xlsx" --sheet "Summary"
 python skills/ge-108-data/date_executor.py --input "one.csv" --input "two.parquet" --format json
 python skills/ge-108-data/date_executor.py --input - --format json < "events.jsonl"
+python skills/ge-108-data/date_executor.py --sent-dir "data/products/sent" --date "25/06/2026"
 ```
 
 Run `python skills/ge-108-data/date_executor.py --help` for all options.
+
+## GE-108 Sent Data
+
+Use the dedicated mode for a directory containing root-level date-prefixed `.data.zip` or `.data.ok` files:
+
+```bash
+python skills/ge-108-data/date_executor.py \
+  --sent-dir "src/main/java/GE-108-data/data/products/sent" \
+  --date "25/06/2026"
+```
+
+The command creates `25-06-2026/OKFILe` under the supplied sent directory, copies files whose names begin with `2026-06-25`, safely extracts matching archives, scans all extracted `.data.ok` files, and writes:
+
+- `duplicate_report.txt`
+- `duplicate_count_report.txt`
+- `duplicate_status_report.txt`
+- `duplicate_status_summary.txt`
+
+Existing copied files or reports are protected. Use `--overwrite` only when replacing a previous generated run is intentional.
 
 ## Output
 
@@ -79,6 +98,7 @@ JSON reports distinguish observed facts, inferences, warnings, assumptions, skip
 
 - Data remains local; the analyzer has no network integration or telemetry.
 - Inputs are opened read-only and are never deleted, renamed, or overwritten.
+- GE-108 source archives remain unchanged; only date-specific working copies and reports are created.
 - Complete records are not included in standard reports.
 - Potential credentials and personal information are masked at report boundaries.
 - Sensitive-data detection is heuristic and is not a compliance guarantee.

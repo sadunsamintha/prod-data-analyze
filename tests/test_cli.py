@@ -93,6 +93,11 @@ def test_invalid_cli_values_use_argument_exit_code(cli_module):
     assert cli_module.main(["--input", "-", "--sample-size", "0"]) == ExitCode.INVALID_ARGUMENTS
 
 
+def test_ge108_mode_requires_sent_dir_and_date(cli_module):
+    assert cli_module.main(["--sent-dir", "somewhere"]) == ExitCode.INVALID_ARGUMENTS
+    assert cli_module.main(["--date", "25/06/2026"]) == ExitCode.INVALID_ARGUMENTS
+
+
 def test_json_record_orientations_from_stdin(cli_module):
     for content in (
         '[{"a": 1}, {"a": 2}]',

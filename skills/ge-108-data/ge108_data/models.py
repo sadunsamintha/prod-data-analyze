@@ -107,7 +107,7 @@ class DatasetReport:
 class RunReport:
     datasets: list[DatasetReport]
     schema_version: str = "1.0"
-    tool_version: str = "0.1.0"
+    tool_version: str = "0.2.0"
     output_paths: list[str] = field(default_factory=list)
 
     @property
