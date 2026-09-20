@@ -1,3 +1,3 @@
 """Internal implementation for the GE-108 data analysis skill."""
 
-__version__ = "0.2.0"
+__version__ = "1.0.0"

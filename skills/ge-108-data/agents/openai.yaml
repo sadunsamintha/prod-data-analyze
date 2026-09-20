@@ -1,4 +1,4 @@
 interface:
   display_name: "GE-108 Data Analyzer"
-  short_description: "Analyze GE-108 archives and local tabular datasets"
-  default_prompt: "Use $ge-108-data to analyze the available GE-108 or tabular data and summarize its findings."
+  short_description: "Find duplicate codes in GE-108 production archives"
+  default_prompt: "Use $ge-108-data to analyze GE-108 sent archives for a production date and report duplicate stringCode findings."

@@ -8,7 +8,6 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "skills" / "ge-108-data"
-FIXTURES = Path(__file__).parent / "fixtures"
 sys.path.insert(0, str(SKILL_DIR))
 
 
@@ -19,8 +18,3 @@ def cli_module():
     assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
-
-
-@pytest.fixture(scope="session")
-def fixtures_dir() -> Path:
-    return FIXTURES
