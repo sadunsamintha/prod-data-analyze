@@ -1,0 +1,2 @@
+-r skills/ge-108-data/requirements.txt
+pytest>=8,<10

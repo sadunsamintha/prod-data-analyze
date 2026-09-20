@@ -1,0 +1,4 @@
+interface:
+  display_name: "GE-108 Data Analyzer"
+  short_description: "Analyze and profile local tabular datasets safely"
+  default_prompt: "Use $ge-108-data to analyze the available local dataset and summarize its data-quality findings."

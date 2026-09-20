@@ -1,0 +1,4 @@
+[
+  {"id": "A-1", "amount": 10, "active": true},
+  {"id": "A-2", "amount": 20, "active": false}
+]
